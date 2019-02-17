@@ -52,16 +52,21 @@
     box-sizing: border-box;
     border: 1px solid #e4e4e4;
     border-radius: 50px 50px 50px 0;
+    transition: 0.3s border-radius ease-out;
 
     &,
     & .search {
       background-color: #f7f7f7;
     }
 
-    &.empty-focused .search-placeholder {
-      opacity: 0.4;
-      transform: translateY(-30px);
-      font-size: 1.5rem;
+    &.empty-focused {
+      border-radius: 50px;
+
+      .search-placeholder {
+        opacity: 0.4;
+        transform: translateY(-30px);
+        font-size: 1.5rem;
+      }
     }
 
     .search,
@@ -93,7 +98,7 @@
       transition: 0.3s all ease-out;
 
       &:hover {
-        border-radius: 10px 31px 10px 31px;
+        border-radius: 0 31px 0 31px;
       }
 
       &:active {
