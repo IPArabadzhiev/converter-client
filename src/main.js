@@ -4,6 +4,14 @@ import router from './router';
 import store from './store';
 import axios from 'axios';
 
+Vue.mixin({
+  data: function() {
+    return {
+      baseUrl:'http://127.0.0.1'
+    }
+  }
+});
+
 axios.defaults.headers = {
   'Content-Type': 'application/x-www-form-urlencoded'
 };

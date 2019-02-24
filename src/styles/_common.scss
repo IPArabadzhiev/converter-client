@@ -38,6 +38,23 @@ button {
   text-align: justify;
 }
 
+.rotate {
+  animation-name: rotate;
+  animation-duration: 2s;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+// Simple animations
+@keyframes rotate {
+  from {
+    transform: rotate(0);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 // Component transions
 .slide-fade-enter-active {
   transition: all 0.3s ease;

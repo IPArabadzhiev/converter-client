@@ -11,13 +11,19 @@
              ref="searchInput"
       />
       <template v-if="isConverted">
-        <button class="download-button"><div class="dw-arrow-down">&gt;<div class="dw-arrow-yellow">&gt;</div></div> DOWNLOAD</button>
+        <button class="download-button" @click="download"><div class="dw-arrow-down">&gt;<div class="dw-arrow-yellow">&gt;</div></div> DOWNLOAD</button>
       </template>
       <template v-else-if="isConverting">
         <button class="convert-button inactive">{{ progress }}<span class="format">%</span></button>
       </template>
       <template v-else>
-        <button class="convert-button" :class="{ inactive: !success, disabled: !success }"><div class="icon-convert"></div> <span class="format">MP3</span></button>
+        <button
+                class="convert-button"
+                :class="{ inactive: !success, disabled: !success }"
+                @click="convert"
+        >
+          <div class="icon-convert" :class="{ rotate: isGettingInformation }"></div> <span class="format">MP3</span>
+        </button>
       </template>
       <div class="search-placeholder">{{ placeholderText }}</div>
     </div>
@@ -40,7 +46,10 @@
         videoName: '',
         checkUrlTimeout: 0,
         error: '',
-        success: false
+        success: false,
+        isGettingInformation: false,
+        fileName: '',
+        format: ''
       }
     },
 
@@ -64,8 +73,14 @@
       },
 
       onSearchInput() {
+        // reset some flags
         this.success = false;
         this.videoName = '';
+        this.isGettingInformation = true;
+        this.isConverted = false;
+        this.isConverting = false;
+        this.fileName = '';
+        this.format = '';
 
         clearTimeout(this.checkUrlTimeout);
         this.checkUrlTimeout = setTimeout(() => {
@@ -77,11 +92,78 @@
 
             if (this.success && response.data.info) {
               this.videoName = response.data.info.title;
+              this.url = this.searchValue;
               this.searchValue = '';
+              this.isGettingInformation = false;
               this.$refs.searchInput.blur();
             }
           });
         }, 300);
+      },
+
+      parseProgress(progressString) {
+        let progress = 0;
+        let result = {};
+        let progressArray = progressString.split('|');
+        if (progressArray.length) {
+          // if everything is complete the last part is json similar to {success: true}
+          let lastProgress = '';
+          while (!lastProgress && progressArray.length) {
+            lastProgress = progressArray.pop();
+          }
+          if (lastProgress) {
+            try {
+              result = JSON.parse(lastProgress);
+              if (typeof result.success === 'undefined') {
+                progress = parseInt(lastProgress, 10);
+              }
+            } catch (e) {
+              progress = parseInt(lastProgress, 10);
+            }
+          }
+        }
+
+        this.isConverted = result.success;
+        this.fileName = result.fileName;
+        this.format = result.format;
+
+        if (progress !== 0) {
+          this.progress = progress;
+        }
+      },
+      
+      convert() {
+        if (this.success) {
+          // not using axios because it does not support stream responses
+          let xhr = new XMLHttpRequest();
+          xhr.open('POST', this.baseUrl + '/convertVideo', true);
+          xhr.send(JSON.stringify({ url: this.url }));
+          this.isConverting = true;
+          this.isConverted = false;
+          let timer = setInterval(() => {
+            if (xhr.readyState === XMLHttpRequest.DONE) {
+              this.isConverting = false;
+              clearInterval(timer);
+            }
+            this.parseProgress(xhr.responseText);
+          }, 200);
+        }
+      },
+
+      download() {
+        this.$http({
+          url: '/download?fileName=' + this.fileName + '&format=' + this.format,
+          method: 'GET',
+          responseType: 'blob'
+        }).then((response) => {
+          console.log(response);
+          const url = window.URL.createObjectURL(new Blob([response.data]));
+          const link = document.createElement('a');
+          link.href = url;
+          link.setAttribute('download', this.fileName + '.' + this.format);
+          document.body.appendChild(link);
+          link.click();
+        });
       }
     }
   }
