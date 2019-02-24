@@ -1,22 +1,27 @@
 <template>
-  <div class="search-bar" :class="{ 'empty-focused': emptyFocused }">
-    <input class="search"
-           :class="{'not-converted': !isConverted}"
-           type="text"
-           @focus="onSearchFocus"
-           @blur="onSearchBlur"
-           v-model="searchValue"
-    />
-    <template v-if="isConverted">
-      <button class="download-button"><div class="dw-arrow-down">&gt;<div class="dw-arrow-yellow">&gt;</div></div> DOWNLOAD</button>
-    </template>
-    <template v-else-if="isConverting">
-      <button class="convert-button inactive">{{ progress }}<span class="format">%</span></button>
-    </template>
-    <template v-else>
-      <button class="convert-button"><div class="icon-convert"></div> <span class="format">MP3</span></button>
-    </template>
-    <div class="search-placeholder">{{ placeholderText }}</div>
+  <div>
+    <div class="search-bar" :class="{ 'empty-focused': emptyFocused }">
+      <input class="search"
+             :class="{'not-converted': !isConverted}"
+             type="text"
+             @focus="onSearchFocus"
+             @blur="onSearchBlur"
+             @input="onSearchInput"
+             v-model="searchValue"
+             ref="searchInput"
+      />
+      <template v-if="isConverted">
+        <button class="download-button"><div class="dw-arrow-down">&gt;<div class="dw-arrow-yellow">&gt;</div></div> DOWNLOAD</button>
+      </template>
+      <template v-else-if="isConverting">
+        <button class="convert-button inactive">{{ progress }}<span class="format">%</span></button>
+      </template>
+      <template v-else>
+        <button class="convert-button" :class="{ inactive: !success, disabled: !success }"><div class="icon-convert"></div> <span class="format">MP3</span></button>
+      </template>
+      <div class="search-placeholder">{{ placeholderText }}</div>
+    </div>
+    <div v-if="error" class="negative error-message">{{ error }}</div>
   </div>
 </template>
 
@@ -33,7 +38,9 @@
         progress: 0,
         placeholder: 'Enter supported link..',
         videoName: '',
-        checkUrlTimeout: 0
+        checkUrlTimeout: 0,
+        error: '',
+        success: false
       }
     },
 
@@ -57,9 +64,23 @@
       },
 
       onSearchInput() {
+        this.success = false;
+        this.videoName = '';
+
         clearTimeout(this.checkUrlTimeout);
         this.checkUrlTimeout = setTimeout(() => {
-          
+          this.$http.post('/getInformation', {
+            url: this.searchValue
+          }).then((response) => {
+            this.error = response.data.error;
+            this.success = response.data.success;
+
+            if (this.success && response.data.info) {
+              this.videoName = response.data.info.title;
+              this.searchValue = '';
+              this.$refs.searchInput.blur();
+            }
+          });
         }, 300);
       }
     }
@@ -138,6 +159,10 @@
         border-radius: 31px;
         transform: translate(1px, 1px);
       }
+
+      &.disabled {
+        opacity: 0.4;
+      }
     }
 
     .convert-button {
@@ -174,5 +199,16 @@
       vertical-align: middle;
       background: url('../assets/icon-convert.png') 0 0 no-repeat;
     }
+  }
+
+  .error-message {
+    position: absolute;
+    top: 240px;
+    left: 50%;
+    width: 650px;
+    max-height: 100px;
+    overflow-y: auto;
+    transform: translateX(-50%);
+    word-break: break-all;
   }
 </style>
