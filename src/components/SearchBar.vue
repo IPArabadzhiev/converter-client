@@ -1,13 +1,22 @@
 <template>
   <div class="search-bar" :class="{ 'empty-focused': emptyFocused }">
     <input class="search"
+           :class="{'not-converted': !isConverted}"
            type="text"
            @focus="onSearchFocus"
            @blur="onSearchBlur"
            v-model="searchValue"
     />
-    <button class="download-button"><div class="dw-arrow-down">&gt;<div class="dw-arrow-yellow">&gt;</div></div> DOWNLOAD</button>
-    <div class="search-placeholder">Enter supported link..</div>
+    <template v-if="isConverted">
+      <button class="download-button"><div class="dw-arrow-down">&gt;<div class="dw-arrow-yellow">&gt;</div></div> DOWNLOAD</button>
+    </template>
+    <template v-else-if="isConverting">
+      <button class="convert-button inactive">{{ progress }}<span class="format">%</span></button>
+    </template>
+    <template v-else>
+      <button class="convert-button"><div class="icon-convert"></div> <span class="format">MP3</span></button>
+    </template>
+    <div class="search-placeholder">{{ placeholderText }}</div>
   </div>
 </template>
 
@@ -18,7 +27,19 @@
     data() {
       return {
         searchValue: '',
-        emptyFocused: false
+        emptyFocused: false,
+        isConverting: false,
+        isConverted: false,
+        progress: 0,
+        placeholder: 'Enter supported link..',
+        videoName: '',
+        checkUrlTimeout: 0
+      }
+    },
+
+    computed: {
+      placeholderText() {
+        return this.videoName || this.placeholder
       }
     },
 
@@ -33,6 +54,13 @@
         if (!this.searchValue) {
           this.emptyFocused = false;
         }
+      },
+
+      onSearchInput() {
+        clearTimeout(this.checkUrlTimeout);
+        this.checkUrlTimeout = setTimeout(() => {
+          
+        }, 300);
       }
     }
   }
@@ -71,7 +99,11 @@
 
     .search,
     .search-placeholder {
-      width: calc(100% - 195px); // 100% - (padding left and right and button width)
+      width: calc(100% - 195px); // 100% - (padding left and right and button width),
+
+      &.not-converted {
+        width: calc(100% - 125px); // 100% - (padding left and right and button width),
+      }
     }
 
     .search-placeholder {
@@ -83,7 +115,8 @@
       transition: 0.2s all ease-out;
     }
 
-    .download-button {
+    .download-button,
+    .convert-button {
       width: 174px;
       margin-left: 20px;
       height: 62px;
@@ -97,13 +130,23 @@
       vertical-align: middle;
       transition: 0.3s all ease-out;
 
-      &:hover {
+      &:not(.inactive):hover {
         border-radius: 0 31px 0 31px;
       }
 
-      &:active {
+      &:not(.inactive):active {
         border-radius: 31px;
         transform: translate(1px, 1px);
+      }
+    }
+
+    .convert-button {
+      width: 104px;
+      height: 62px;
+      background-color: #ff5551;
+      
+      &.inactive {
+        cursor: auto;
       }
     }
 
@@ -118,8 +161,18 @@
       transform: rotate(90deg);
     }
 
-    .dw-arrow-yellow {
+    .dw-arrow-yellow,
+    .format {
       color: #fee7a3;
+    }
+
+    .icon-convert {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      margin-right: 10px;
+      vertical-align: middle;
+      background: url('../assets/icon-convert.png') 0 0 no-repeat;
     }
   }
 </style>
